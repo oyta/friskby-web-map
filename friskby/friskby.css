@@ -1,0 +1,15 @@
+/* Remove the navbar's default margin-bottom and rounded borders */
+        .navbar {
+          border-radius: 0;
+        }
+
+.friskTimeslider {
+    /* width: 100%; */;
+}
+
+
+#sensor-table td {
+    font-size: 10px; /* 0.85vw; */
+}
+/* Header: #d87b62 */
+/* body: #a0bbae */

@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Friskby Bergen</title>
+    
+    <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="http://openlayers.org/en/master/css/ol.css" type="text/css">
+    <link rel="stylesheet" href="./sidebar/css/ol3-sidebar.css" />
+    
+    <script src="proj4.js" type="text/javascript"></script>
+    <script src="https://code.jquery.com/jquery-2.2.3.min.js" integrity="sha256-a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo=" crossorigin="anonymous"></script>
+    <script src="http://openlayers.org/en/master/build/ol.js" type="text/javascript"></script>
+    <script src="./sidebar/js/jquery-sidebar.js"></script>
+    <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+        html, body, #map {
+            height: 100%;
+            font: 10pt "Helvetica Neue", Arial, Helvetica, sans-serif;
+        }
+        .lorem {
+            font-style: italic;
+            color: #AAA;
+        }
+
+         .rotate-north {
+            top: 10px;
+            right: 6.35em;
+            background-color: transparent;
+            position: absolute;
+        }
+
+        .rotate-north button {
+            border-radius: 5%;
+            background-color: rgba(250,250,250,0.7);
+            padding: 10px;
+            font-family: arial black;
+            color: #000;
+            float: left;
+            border: solid 5px transparent;
+        }
+
+        .rotate-north button:hover {
+            border: solid 5px #fff;
+        }
+
+      .ol-touch .rotate-north {
+        top: 80px;
+      }
+        
+        .sensor-chart {
+            height: 400px;
+            width: 100%;
+            position: static;
+            float: left;
+            clear: both;
+        }
+        
+        .sensor-data {
+            height: 200px;
+            position: static;
+        }
+        
+        .progress {
+            position:absolute;
+            bottom: 10%;
+            right: 10%;
+            left: auto;
+            background-color: rgba(255,255,255, 0.4);
+            border-radius: 5%;
+            border: solid 1px #f50;
+            height: 50px;
+            width: 200px;
+        }
+        
+        .progressHidden {
+            visibility: hidden;
+        }
+    </style>
+    
+</head>
+<body>
+    <div id="sidebar" class="sidebar collapsed">
+        <!-- Nav tabs -->
+        <div class="sidebar-tabs">
+            <ul role="tablist">
+                <li><a href="#home" role="tab"><i class="fa fa-bars"></i></a></li>
+                <li class="disabled"><a href="#profile" role="tab"><i class="fa fa-user"></i></a></li>
+                <li class="disabled"><a href="#messages" role="tab"><i class="fa fa-envelope"></i></a></li>
+            </ul>
+
+            <ul role="tablist">
+                <li><a href="#settings" role="tab"><i class="fa fa-gear"></i></a></li>
+            </ul>
+        </div>
+
+        <!-- Tab panes -->
+        <div class="sidebar-content">
+            <div class="sidebar-pane" id="home">
+                <h1 class="sidebar-header">
+                    Friskby Bergen
+                    <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+                </h1>
+
+                <div class="sidebar-data" id="sidebar-data">
+                    <div class="sensor-data" id="sensor-data"></div>
+                    <div class="sensor-chart" id="sensor-chart"></div>
+                </div>
+            </div>
+
+            <div class="sidebar-pane" id="profile">
+                <h1 class="sidebar-header">Profile<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
+            </div>
+
+            <div class="sidebar-pane" id="messages">
+                <h1 class="sidebar-header">Messages<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
+            </div>
+
+            <div class="sidebar-pane" id="settings">
+            <h1 class="sidebar-header">Info<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
+                <p>
+                    De foreslåtte endringer i forurensningsforskriften kapittel 7 gjelder nye grenseverdier for PM10 og PM2,5 som dersom forslaget vedtas vil bli gjeldende fra 2016 [<a href="http://www.miljodirektoratet.no/Global/dokumenter/horinger/Skjerpede%20grenseverdier%20for%20svevestøv%20i%20forurensningsforskriftens%20kapittel%207%20om%20lokal%20luftkvalitet%20-%20anmodning%20om%20høringsuttalelser.pdf?epslanguage=no">kilde</a>]:
+                </p>
+
+                <p>
+                    PM10<br/>
+                    - Årsmiddelkonsentrasjon 25 μg/m<sup>3</sup><br/>
+                    - Døgnmiddelkonsentrasjon 50 μg/m<sup>3</sup> med maksimalt 30 tillatte overskridelser
+                </p>
+
+                <p>
+                    PM2,5<br/>
+                    - Årsmiddelkonsentrasjon 15 μg/m<sup>3</sup>
+                </p>
+
+                <p>Kartdata er  &copy; <a href="http://kartverket.no/">Kartverket</a> under <a href="http://creativecommons.org/licenses/by/4.0/deed.no">CC BY 4.0 lisens</a>. Noko av koden brukt er &copy; <a href="http://jquery.com/">jQuery</a> under <a href="https://www.tldrlegal.com/l/mit">MIT lisens</a>, og andre delar er frå <a href="http://openlayers.org/">&copy; OpenLayers</a> under <a href="https://www.tldrlegal.com/l/freebsd">2-Clause BSD lisens</a>.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="map" class="sidebar-map"></div>
+    
+    <div id="progress" class="progress">Progress info</div>
+
+<script>
+
+    /**
+     *
+     *  Sensor styles
+     *
+     */
+    var circleGray = new ol.style.Style({
+        image: new ol.style.Circle({
+            radius: 5,
+            fill: new ol.style.Fill({color: 'rgba(155,155,155,0.4)'}),
+            stroke: new ol.style.Stroke({color: 'black', width: 3})
+        }),
+        text: new ol.style.Text({
+            font: '10px Calibri,sans-serif',
+            fill: new ol.style.Fill({
+                color: '#000'
+            }),
+            stroke: new ol.style.Stroke({
+                color: '#fff',
+                width: 3
+            })
+        })
+    });
+
+    var circleGreen = new ol.style.Style({
+        image: new ol.style.Circle({
+            radius: 15,
+            fill: new ol.style.Fill({color: 'rgba(55,255,55,0.4)'}),
+            stroke: new ol.style.Stroke({color: 'green', width: 3})
+        }),
+        text: new ol.style.Text({
+            font: '10px Calibri,sans-serif',
+            fill: new ol.style.Fill({
+                color: '#000'
+            }),
+            stroke: new ol.style.Stroke({
+                color: '#fff',
+                width: 3
+            })
+        })
+    });
+
+    var circleRed = new ol.style.Style({
+        image: new ol.style.Circle({
+            radius: 15,
+            fill: new ol.style.Fill({color: 'rgba(255,55,55,0.4)'}),
+            stroke: new ol.style.Stroke({color: 'red', width: 3})
+        }),
+        text: new ol.style.Text({
+            font: '10px Calibri,sans-serif',
+            fill: new ol.style.Fill({
+                color: '#000'
+            }),
+            stroke: new ol.style.Stroke({
+                color: '#fff',
+                width: 3
+            })
+        })
+    });
+
+    var circleSelected = new ol.style.Style({
+        image: new ol.style.Circle({
+            radius: 18,
+            fill: new ol.style.Fill({color: 'rgba(200,150,40,0.6)'}),
+            stroke: new ol.style.Stroke({color: 'orange', width: 1})
+        }),
+        text: new ol.style.Text({
+            font: '12px Calibri,sans-serif',
+            fill: new ol.style.Fill({
+                color: '#000'
+            }),
+            stroke: new ol.style.Stroke({
+                color: '#fff',
+                width: 3
+            })
+        })
+    });
+
+    var styles = {
+      'Inactive': circleGray,
+      'BreakingThreshold': circleRed,
+      'WithinThreshold': circleGreen
+    };
+
+    var styleFunction = function(feature, resolution) {
+        switch( feature.getProperties().state ) {
+            case 'BreakingThreshold':
+            case 'WithinThreshold':
+                //styles[feature.getProperties().state].getText().setText(resolution < 5000 ? feature.getProperties().last_value : '');
+                styles[feature.getProperties().state].getText().setText("" + feature.getProperties().last_value);
+                break;
+            default:
+                break;
+        }
+        return styles[feature.getProperties().state];
+    };
+
+    /**
+     *
+     * TODO Add time series chart D3.js
+     */
+
+    /**
+     *
+     * TODO Create a Friskby JS Library / Module
+     * https://egghead.io/lessons/javascript-how-to-write-a-javascript-library-setting-up-github
+     */
+
+     /**
+      *
+      * TODO Replace layers buttons with icons?
+      * TODO Auto update values in map (every 10 minutes?)
+      */
+
+    /**
+     *
+     *
+     * TODO Create a readable sensor info view for the side bar
+     */
+
+    /**
+     *
+     *
+     * TODO     
+     */
+    
+    /**
+     *
+     * Map settings
+     *
+     */
+
+    /* Datum WGS84, UTM zone 33N */
+    var UTM33 = 'EPSG:32633';
+    /* WGS84 */
+    var WGS84 = 'EPSG:4326';
+    /* The WMTS source from Kartverket use UTM33 */
+    var srcProjection = UTM33;
+
+    /* Set the location of the proj4 library */
+    ol.proj.setProj4(proj4);
+
+    /* Define the UTM33 for Proj4js */
+    proj4.defs([
+        [
+            'EPSG:32633',
+            '+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs'
+        ]
+    ]);
+
+    /* Configure Open Layers for the Kartverket map. Reference: http://kartverket.no/Kart/Gratis-kartdata/WMS-tjenester/ */
+    var projection =  ol.proj.get(srcProjection);
+    var projectionExtent = [-2500000, 3500000, 3045984, 9045984];
+    var resolutions = [21664, 10832, 5416, 2708, 1354, 677, 338.5, 169.25, 84.625, 42.3125, 21.15625, 10.578125, 5.2890625, 2.64453125, 1.322265625, 0.6611328125, 0.33056640625, 0.165283203125];
+    var matrixIds = [];
+    for (var z = 0; z < 18; ++z) {
+        /**
+         * Max 18? .. eller 21? 
+         * generate resolutions and matrixIds arrays for this WMTS
+         * resolutions[z] = size / Math.pow(2, z);
+         *
+         */
+        matrixIds[z] = srcProjection + ":" + z;
+    }    
+
+    /* This is currently not in use. */
+    /* Configure the cluster source. */
+    /*
+    var clusterSource = new ol.source.Cluster({
+        source: vectorSource,
+        distance: 40,
+    });
+    */
+
+    /* This is currently not in use. */
+    /* Set up dynamic style on the cluster source according to the sensor values */
+    /*
+    var styleCache = {};
+    var clusterLayer = new ol.layer.Vector({
+        source: clusterSource,
+        style: function(feature) {
+            var size = feature.get('features').length;
+            var style = styleCache[size];
+            if (!style) {
+                if( size == 1 ) {
+                    return styles[feature.get('features')[0].get('state')];
+                }
+                else {
+                    style = new ol.style.Style({
+                        image: new ol.style.Circle({
+                            radius: 10,
+                            stroke: new ol.style.Stroke({
+                                color: '#fff'
+                            }),
+                            fill: new ol.style.Fill({
+                                color: '#3399CC'
+                            })
+                        }),
+                        text: new ol.style.Text({
+                            text: size.toString(),
+                            fill: new ol.style.Fill({
+                                color: '#fff'
+                            })
+                        })
+                    });
+                }
+                styleCache[size] = style;
+            }
+
+            return style;
+        }
+    });
+    */
+    
+
+    /**
+     *
+     * Define a namespace for the application.
+     *
+     */
+    window.app = {};
+    var app = window.app;
+
+
+    /**
+     *
+     * Configure the Open Layers map
+     *
+     */
+    var map = new ol.Map({
+        target: 'map',
+        controls: ol.control.defaults({
+                attributionOptions: /** @type {olx.control.AttributionOptions} */ ({
+                    collapsible: false
+                })
+            })/*.extend(
+                [new ol.control.ZoomToExtent({target: document.getElementById('map')})]
+            )*/,
+        layers: [
+            /* Define the Kartverket map layer */
+            new ol.layer.Tile({
+                title: "Norges grunnkart",
+                source: new ol.source.WMTS({
+                    url: "http://opencache.statkart.no/gatekeeper/gk/gk.open_wmts?",
+                    layer: 'norges_grunnkart_graatone',
+                    matrixSet: 'EPSG:32633',
+                    format: 'image/png',
+                    projection: projection,
+                    tileGrid: new ol.tilegrid.WMTS({
+                        extent: projectionExtent,
+                        resolutions: resolutions,
+                        matrixIds: matrixIds
+                    })
+                })
+            })],
+        view: new ol.View({
+            projection: srcProjection,
+            center: [-33475.34364682839,6732061.012181105],
+            zoom: 14,
+            minZoom: 9,
+            maxZoom: 17
+        })
+    });
+            
+
+/* $( document ).ready(function() { */
+    /* Get the coordinates in the console when clicking in the map */
+    /*
+    map.on('singleclick', function(evt) {
+        var coord = evt.coordinate;
+        var transformed_coordinate = proj4(UTM33, WGS84, coord);
+        console.log(transformed_coordinate);
+        console.log("Click position: " + coord );
+    });
+    */
+    /**
+     *
+     * Measurement types
+     * 
+     * PSEUDO
+     * Read all measurement types
+     * Read all the sensor info
+     * For each sensor, add it to a GeoJSON object to the specific measurement type
+     * Iterate the measurement types, count sensor per type and remove those who have zero sensors
+     * Add vector layer to map
+     * Add layer buttons
+     *
+     */
+    
+    var jsonMeasurementTypesURL = "http://friskby.herokuapp.com/sensor/api/measurement_type/?format=json";
+    var jsonPathSensorInfoURL = "http://friskby.herokuapp.com/sensor/api/sensorinfo/?format=json";
+    var jsonMeasurementTypes = {};
+    $.getJSON( jsonMeasurementTypesURL , function() {
+      console.log("Loaded measurement types from Friskby");
+    })
+    .done(function( json ) {;
+        //jsonMeasurementTypes = json;
+
+        $.each(json, function(index, mType) {
+            jsonMeasurementTypes[mType.id] = {};
+            jsonMeasurementTypes[mType.id].id = mType.id;
+            jsonMeasurementTypes[mType.id].name = mType.name;
+            /* GeoJSON variable */
+            jsonMeasurementTypes[mType.id].geoJSON = {};
+            jsonMeasurementTypes[mType.id].geoJSON.type = "FeatureCollection";
+            jsonMeasurementTypes[mType.id].geoJSON.features = [];
+            /* Configure the vector source */
+            jsonMeasurementTypes[mType.id].vectorSource = new ol.source.Vector({
+                features: (new ol.format.GeoJSON()).readFeatures(jsonMeasurementTypes[mType.id].geoJSON, {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:32633'})
+            });
+        });
+
+        $.getJSON( jsonPathSensorInfoURL )
+        .done(function( json ) {
+            parseJsonFromServer( json );
+
+            $.each(jsonMeasurementTypes, function(index, mType) {
+                if( mType.geoJSON.features.length > 0) {
+                    mType.vectorSource.clear();
+                    mType.vectorSource.addFeatures( (new ol.format.GeoJSON()).readFeatures(mType.geoJSON, {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:32633'}) );
+                    mType.vectorLayer = new ol.layer.Vector({
+                        source: mType.vectorSource,
+                        style: styleFunction
+                    });
+                    map.addLayer(mType.vectorLayer);
+                }
+                else {
+                    delete jsonMeasurementTypes[mType.id];
+                }
+            });
+
+            /**
+            * @constructor
+            * @extends {ol.control.Control}
+            * @param {Object=} opt_options Control options.
+            */
+            app.RotateNorthControl = function(opt_options) {
+                var options = opt_options || {};
+
+                var element = $(document.createElement('div'));
+                element.addClass('rotate-north');
+
+                $.each(jsonMeasurementTypes, function(index, mType) {
+                    /*
+                    if( index > 1 ) {
+                        mType.vectorLayer.setVisible(false);
+                    }
+                    else {
+                        var sourceExtent = mType.vectorSource.getExtent();
+                        map.getView().setCenter(sourceExtent);
+                        map.getView().setProperties({extent: sourceExtent});
+                    }
+                    */
+                    var button = $(document.createElement('button'));
+                    if( mType.id == 8 )
+                        button.html("PM10");
+                    else if( mType.id == 9 )
+                        button.html("PM2.5");
+                    else
+                        button.html( mType.name.substr(0,1));
+
+                    button.attr("id",mType.id);
+                    button.on('click touchstart', function() {
+                        var b = $(this);
+                        console.log("Clicked the button: " + b.attr("id"));
+                        $.each( jsonMeasurementTypes, function( index, mType ) {
+                            mType.vectorLayer.setVisible( button.attr("id") == mType.id );
+                            //var sourceExtent = mType.vectorSource.getExtent();
+                            //map.getView().setCenter(sourceExtent);
+                            //map.getView().setProperties({extent: sourceExtent});
+                            map.getView().setProperties({extent: map.getView().calculateExtent(map.getSize())});
+                            $(".rotate-north button").css("background-color", "rgba( 250, 250, 250, 0.6)");
+                            b.css("background-color", "lightgreen");
+                        });
+                    });
+                    element.append(button);
+                });
+                ol.control.Control.call(this, {
+                    element: element.get(0),
+                    target: options.target
+                });
+            };
+
+            ol.inherits(app.RotateNorthControl, ol.control.Control);
+            map.addControl(new app.RotateNorthControl());
+
+            $(".rotate-north").find("#8").trigger("click");
+
+            console.log( "Measurement types loaded from Friskby server, and controls added to the map");
+            
+            
+            if ($("#sidebar").hasClass('collapsed'))
+                $(".sidebar-tabs").find('li > a[href="#home"]').trigger("click");
+            addChartBeta();
+        })
+        .fail(function( jqxhr, textStatus, error ) {
+            var err = textStatus + ", " + error;
+            console.log( "Request Failed: " + err );
+        });
+    })
+    .fail(function( jqxhr, textStatus, error ) {
+      var err = textStatus + ", " + error;
+      console.log( "Request Failed: " + err );
+    });
+
+ 
+    /**
+     *
+     * Set up the interaction with the sensor icons in the map
+     *
+     */
+
+    /* Reference to currently selected interaction */
+    var select = null;
+    /* Configure the interacton */
+    var selectClick = new ol.interaction.Select({
+        condition: ol.events.condition.click,
+        /*layers: function(layer) {
+          return layer.get('selectable') == true;
+        },*/
+        style: circleSelected
+    });
+
+    function getFriskbyLayers() {
+        var a = [];
+        $.each(jsonMeasurementTypes, function(index, mType) {
+            a.push(mType.vectorLayer);
+        });
+        return a;
+    }
+
+    var selectedFeatures = selectClick.getFeatures();
+
+    /* What happens when a sensor is selected. Update text in sidebar and open sidebar */
+    selectedFeatures.on('add', function(event) {
+        //console.log("Layer feature selected");
+        var feature = event.target.item(0);
+        //console.log(feature.getKeys());
+        $("#" + feature.get("id") ).toggleClass("hiddenSensor");
+        
+        /*$.each( feature.getKeys(), function(index, key ) {
+            //$("#sidebar-data").append("<li>" + key + ": " + feature.get(key) + "</li>");
+            
+        });*/
+
+        /* Open the sidebar if closed */
+        if ($("#sidebar").hasClass('collapsed'))
+            $(".sidebar-tabs").find('li > a[href="#home"]').trigger("click");
+    });
+
+    /* When a feature is unselected, remove text and close side bar */
+    selectedFeatures.on('remove', function(event) {
+        /* Hide sensor info */
+        $(".sensorInfo").addClass("hiddenSensor");
+        
+        /* Open the sidebar if closed */
+        if (!$("#sidebar").hasClass('collapsed'))
+            $(".sidebar-tabs").find('li > a[href="#home"]').trigger("click");
+    });
+
+    /* Add interaction to the map */
+    //map.addInteraction(selectClick);
+     map.getInteractions().extend([selectClick]);
+
+
+    /* Set up the side bar */
+    var sidebar = $('#sidebar').sidebar();
+
+
+    /**
+     * Function for getting sensor info 
+     */
+    function parseJsonFromServer( json ) {
+        $.each(json, function( index, object ) {                
+            var feature = {};
+            feature.type = "Feature";
+            feature.geometry = {};
+            feature.geometry.type = "Point";
+            feature.geometry.coordinates = [
+            object.parent_device.location.longitude,
+            object.parent_device.location.latitude        
+            ];
+            feature.properties = {};
+
+            /* Filtering out test sensors and other sensors not relevant. As of now the temperature reading from Met.no does not have valid locations, hence not shown. */
+            /* if( object.id == "RANDOM" || object.id == "MET:TEMP:FLORIDA" || object.id == "MET:TEMP:BLINDERN" ) { */
+            if( object.parent_device.location.longitude == 1.0 || object.parent_device.location.longitude == 0.0 ) {
+                /* In jQuery we must return non-false to skip to the next iteration (for .each) instead of the JS continue statement */
+                return true;
+            }
+
+            /* One to one from Friskby API to properties */
+            feature.properties.id = object.id;
+            feature.properties.sensor_type = object.sensor_type;
+            feature.properties.parent_device = object.parent_device;
+            feature.properties.data_type = object.data_type;
+            feature.properties.description = object.description;
+            feature.properties.on_line = object.on_line;
+            feature.properties.last_value = object.last_value;
+            feature.properties.last_timestamp = object.last_timestamp;
+
+            var state = "Inactive";
+            var value = null;
+            var time = null;
+
+            if( object.on_line == false ) {
+                state = "Inactive";
+            }
+            else {
+                if(object.last_value != null) {
+                    value = object.last_value;
+                    time = new Date(object.last_timestamp);
+                }
+
+                if( value != null ) {
+                    /* TODO Add a logic around whether the air quality breaks the given thresholds or not. The current implementatipn is not correct */
+                    state = (value > 40) ? "BreakingThreshold" : "WithinThreshold";
+                }
+            }
+            feature.properties.state = state;
+            feature.properties.value = value;
+            feature.properties.time = time;
+
+            jsonMeasurementTypes[object.sensor_type.measurement_type.id].geoJSON.features.push(feature);
+            
+            $("#sensor-data").append(getInfoHTML( object ));
+        });
+    }
+    
+    
+    function getInfoHTML( sensor ) {
+        var div = $("<div></div>");
+        div.addClass("sensorInfo");
+        div.addClass("hiddenSensor");
+        div.attr("id", sensor.id );
+        div.append("<h3>" + sensor.parent_device.id + ": " + sensor.sensor_type.short_description + "</h3><br/>");
+        div.append("<span class='sensorType'>" + sensor.sensor_type.description + ". </span>");
+        div.append("It is placed at <span class='location'>" + sensor.parent_device.location.name + "</span> at <span class='height'>" + sensor.parent_device.location.altitude + "</span> m.a.s.l. ");
+        div.append("Last value was at <span class='lastValue'>" + sensor.last_value + " μg/m<sup>3</sup></span> " + timeDiffToString(new Date(sensor.last_timestamp), new Date()) + " ago."  );
+        return div;
+    }
+                   
+    function timeDiffToString( fromDate, toDate ) {
+            var diff, temp;
+            var sizes = ["year", "month", "day", "hour", "minute", "second"];
+            var string = "";
+        
+            var unit = {
+                second: "s",
+                minute: "min",
+                hour: "hours",
+                day: "days",
+                month: "months",
+                year: "years"
+            }
+            
+            var result = {
+                second: 0,
+                minute: 0,
+                hour:   0,
+                day:    0,
+                month:  0,
+                year:   0
+            }
+            
+            var size = {
+                second: 1000,
+                minute: 1000*60,
+                hour:   1000*60*60,
+                day:    1000*60*60*24,
+                month:  1000*60*60*24*30,
+                year:   1000*60*60*24*365
+            };
+                
+            diff = toDate - fromDate;
+            
+            $.each( sizes, function( i, s) {
+                if( diff > size[s] ) {
+                    temp = diff / size[s];
+                    result[s] = Math.floor(temp);
+                    diff = (temp-result[s]) * size[s];
+                    string += result[s] + " " + unit[s] + ", ";
+                }
+            });
+        
+            string = string.substr(0, string.length - 2);
+            return string;
+        };
+    
+    
+    var plotlyData = [], layout, defs, urls = [];
+    
+    function addChartBeta() {
+        var sensorDataURL = function(sensor, start, end) {
+            /* TODO add validation - does the sensor exist? Or really - it should be a part of the Sensor module */
+            /* return "http://friskby.herokuapp.com/sensor/api/reading/" + sensor + "/?start='" + start + "'&end='" + end + "'";*/
+            
+            return "http://friskby.herokuapp.com/sensor/api/reading/" + sensor + "/?num=1000"; //start='" + start + "'&end='" + end + "'";
+        }
+        
+        //var plotlyData = [];
+        
+        //var layout = {
+        layout = {
+            title: null,
+            xaxis: {
+                title: null,
+                showline: true,
+                ticks: 'inside'
+            },
+            yaxis: {
+                title: null,
+                showline: true,
+                ticks: 'inside'
+            },
+            width: 350,
+            height: 300,
+            margin: {l: 25, r:0, b: 35, t: 0},
+            legend: {
+                y: 1,
+                x: 0
+            }/*,
+            annotations: [{
+                showarrow: false,
+                text: 'Frisbky Bergen',
+                x: 0,
+                y: 0,
+                xref: 'paper',
+                yref: 'paper'
+            }]*/
+        };
+        
+        var plotlyDataObject = function( friskbyData, name ) {
+            var xValues = [];
+            var yValues = [];
+            
+            $.each( friskbyData, function( index, data ) {
+                xValues.push(new Date(data[0]));
+                yValues.push(data[1]);
+            });
+            
+            return {x: xValues,
+                    y: yValues,
+                    line: { width: 1 },
+                    name: urls[name].split("/")[6]
+                   };
+        };
+        
+        var dateString = function( date )  {
+            / * &start="2017-06-05T03:25:19" */
+            var str = "";
+            var month = date.getMonth() + 1;
+            var day = date.getDate();
+            var hours = date.getHours();
+            var min = date.getMinutes();
+            var sec = date.getSeconds();
+            str += date.getFullYear() + "-";
+            str += (month<10?"0":"") + month + "-";
+            str += (day<10?"0":"") + day + "T";
+            str += (hours<10?"0":"") + hours + ":";
+            str += (min<10?"0":"") + min + ":";
+            str += (sec<10?"0":"") + sec;
+            return str;
+        }
+        
+        var weekMs = 1000*60*60; // 1000*60*60*24*7;
+        var end = new Date();
+        var start = new Date(end - weekMs);
+        
+        start = dateString(start);
+        end = dateString(end);
+        
+        
+        
+        /* Create an array with all the JSON urls */
+        $.each( jsonMeasurementTypes, function( measurementTypeId, measurementType ) {
+            $.each(measurementType.geoJSON.features, function(featureId, feature) {
+                if( feature.properties.state != "Inactive" )
+                    urls.push(sensorDataURL( feature.properties.id, start, end ));          
+            });
+        });
+
+        /**
+        * Load multiple json files, with progress.
+        *
+        * Example usage:
+        *
+        * jQuery.getMultipleJSON('file1.json', 'file2.json')
+        *   .progress(function(percent, count, total){})
+        *   .fail(function(jqxhr, textStatus, error){})
+        *   .done(function(file1, file2){})
+        * ;
+        */
+        jQuery.getMultipleJSON = function() {
+            /* If the given argument is an array */
+            var tmpArgs = [];
+            jQuery.map( arguments, function( arg, index ) {
+                if( jQuery.isArray( arg )) {
+                    //tmpArgs.push.apply( arg );
+                    $.merge(tmpArgs, arg);
+                }
+                else {
+                    //tmpArgs.push.apply( arg );
+                    $.merge(tmpArgs, arg);
+                }
+            });
+            
+            var 
+                num = 0,
+                def = jQuery.Deferred(),
+                map = jQuery.map(tmpArgs, function( jsonfile, index ) {
+                    return jQuery.getJSON( jsonfile ).done( function( json ) {
+                        def.notify(1/map.length * ++num, num, map.length);
+                        return json;
+                    });
+                })
+            ;
+            
+            jQuery.when.apply(jQuery, map)
+            .fail( function() {
+                def.rejectWith(def, arguments);
+            })
+            .done( function() {
+                def.resolveWith(def, jQuery.map(arguments, function( response, index ) {
+                    plotlyData.push( plotlyDataObject( response[0], index));
+                }));
+            });
+            
+            return def;
+        };
+        
+        defs = jQuery.getMultipleJSON(urls)
+            .progress(function(percent, count, total)  {
+                $("#progress").html("Charts " + (percent*100) + "% loaded. That is " + count + " of " + total + ".");
+            })
+            .fail(function(jqxhr, textStatus, error){
+                console.log("Json load fail");
+            })
+            .done( function(x) {
+                Plotly.newPlot(document.getElementById('sensor-chart'), plotlyData, layout, {showLink: false});
+            })
+        ;
+    };
+/* }); */ 
+    </script>
+</body>
+</html>
