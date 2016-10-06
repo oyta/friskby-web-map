@@ -419,13 +419,6 @@ var FriskbyModuleExtensions = (function ( Friskby ) {
                     currentDate.setMilliseconds(0);
                 }
             });
-
-            /*
-            if( sensorId == "FriskPI02_PM10" )
-                console.log( currentDate.toISOString() + " " + sensorId + " " + _getLocation( sensorId));
-            else
-                console.log( sensorId );
-            */
             
             timeserieMax[timeserieMax.length] = [currentDate.toISOString(), max];
             if( _getLocation( sensorId )[1] > 1 )
@@ -656,8 +649,11 @@ var FriskbyModuleExtensions = (function ( Friskby ) {
                  $.when.apply($, timeseriesRequests ).then( function () {
                     $.each( arguments, function( index, value ) {
                         // 0: data, 1: text status, 2: jqXHR
-                        if( value[1] == "success" ) 
-                            _model.addTimeserie( timeseriesApi.keys[index], value[0] );
+                        if( value[1] == "success" ) {
+                            var sensorId = timeseriesApi.keys[index];
+                            if( sensorId.indexOf(/test/i) < 0 )
+                                _model.addTimeserie( timeseriesApi.keys[index], value[0] );
+                        }
                         else {
                             console.log("Something went wrong loading JSON.. ");
                             console.log(value[0]);
